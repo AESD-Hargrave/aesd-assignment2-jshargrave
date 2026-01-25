@@ -31,35 +31,36 @@
 #define FILE_FLAGS O_WRONLY | O_CREAT
 // File mode: User has read/write, groupd has read/write, everyone has read permissions
 #define FILE_MODE S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH
+// Print buffer size
+#define BUFFER_SIZE 256
 
-void print_and_log(int log_level, char* format, char* content)
+void print_and_log(int log_level, char* content)
 {
-    printf(format, content);
-    syslog(log_level, format, content);
-}
-
-void print_and_log2(int log_level, char* format, char* content1, char* content2)
-{
-    printf(format, content1, content2);
-    syslog(log_level, format, content1, content2);
+    printf("%s", content);
+    syslog(log_level, "%s", content);
 }
 
 int main(int argc, char *argv[])
 {
+    // Used to storing log and print out
+    char print_buffer[BUFFER_SIZE];
+
     // Setup logger
     openlog(NULL, LOG_ODELAY, LOG_USER);
 
     // If missing writefile
     if (argc < 2)
     {
-        print_and_log(LOG_ERR, "%s\n", "Error: Missing writefile argument!");
+        snprintf(print_buffer, BUFFER_SIZE, "%s\n", "Error: Missing writefile argument!");
+        print_and_log(LOG_ERR, print_buffer);
         return 1;
     }
 
     // If missing writestr
     if (argc < 3)
     {
-        print_and_log(LOG_ERR, "%s\n", "Error: Missing writestr argument!");
+        snprintf(print_buffer, BUFFER_SIZE, "%s\n", "Error: Missing writestr argument!");
+        print_and_log(LOG_ERR, print_buffer);
         return 1;
     }
 
@@ -72,24 +73,28 @@ int main(int argc, char *argv[])
     // Check that file opened correctly
     if (file_descriptor == -1)
     {
-        print_and_log(LOG_ERR, "Error: Failed to open file '%s'!\n", writefile);
+        snprintf(print_buffer, BUFFER_SIZE, "Error: Failed to open file '%s'!\n", writefile);
+        print_and_log(LOG_ERR, print_buffer);
         return 1;
     }
 
     // Log write
-    print_and_log2(LOG_DEBUG, "Writing '%s' to '%s'\n", writestr, writefile);
+    snprintf(print_buffer, BUFFER_SIZE, "Writing '%s' to '%s'\n", writestr, writefile);
+    print_and_log(LOG_DEBUG, print_buffer);
 
     // Write contents to file
     size_t write_length = strlen(writestr);
     ssize_t bytes_written = write(file_descriptor, writestr, write_length);
     if (bytes_written == -1)
     {
-        print_and_log(LOG_ERR, "Error: Failed to write to file '%s'!\n", writefile);
+        snprintf(print_buffer, BUFFER_SIZE, "Error: Failed to write to file '%s'!\n", writefile);
+        print_and_log(LOG_ERR, print_buffer);
         return 1;
     }
     else if (bytes_written != write_length)
     {
-        print_and_log(LOG_ERR, "Error: Failed to write all content to file '%s'!\n", writefile);
+        snprintf(print_buffer, BUFFER_SIZE, "Error: Failed to write all content to file '%s'!\n", writefile);
+        print_and_log(LOG_ERR, print_buffer);
         return 1;
     }
 
@@ -97,7 +102,8 @@ int main(int argc, char *argv[])
     int close_return = close(file_descriptor);
     if (close_return == -1)
     {
-        print_and_log(LOG_ERR, "Error: Failed to close file '%s'!\n", writefile);
+        snprintf(print_buffer, BUFFER_SIZE, "Error: Failed to close file '%s'!\n", writefile);
+        print_and_log(LOG_ERR, print_buffer);
         return 1;
     }
     
